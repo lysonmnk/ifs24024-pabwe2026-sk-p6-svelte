@@ -1,108 +1,106 @@
-<script>
-  import { onMount } from "svelte";
-  import { useInput } from "../../../hooks/useInput.js";
-  import {
-    profile,
-    loadProfile,
-    updateProfile,
-    updatePhoto,
-    changePassword,
-  } from "../states/usersStore.js";
-  import { handleResult, showWarningDialog } from "../../../helpers/toolsHelper.js";
+<script lang="ts">
+  import { get } from "svelte/store";
+  import { Camera, KeyRound, Save } from "lucide-svelte";
+  import Avatar from "../../../components/Avatar.svelte";
+  import { useInput } from "../../../hooks/useInput";
+  import { authStore } from "../../auth/states/authStore";
+  import { savePassword, savePhoto, saveProfile } from "../states/usersStore";
 
-  const name = useInput();
-  const email = useInput();
-  const oldPassword = useInput();
-  const newPassword = useInput();
-  const nameValue = name.value;
-  const emailValue = email.value;
-  const oldValue = oldPassword.value;
-  const newValue = newPassword.value;
-  let photo = $state(null);
+  const initial = get(authStore).profile!;
+  const { value: name } = useInput(initial.name);
+  const { value: email } = useInput(initial.email);
+  const { value: current, reset: resetCurrent } = useInput();
+  const { value: next, reset: resetNext } = useInput();
+  const { value: confirmation, reset: resetConfirmation } = useInput();
 
-  // Isi formulir setiap kali profil tersedia / berubah.
-  $effect(() => {
-    if ($profile) {
-      nameValue.set($profile.name);
-      emailValue.set($profile.email);
-    }
-  });
+  let photoFile = $state<File | null>(null);
+  let passwordError = $state("");
+  const profile = $derived($authStore.profile);
 
-  onMount(() => {
-    loadProfile();
-  });
-
-  const onPhoto = (event) => {
-    photo = event.target.files[0];
-  };
-
-  async function saveProfile(event) {
+  async function submitProfile(event: SubmitEvent) {
     event.preventDefault();
-    const res = await updateProfile({ name: $nameValue, email: $emailValue });
-    await handleResult(res, () => {});
+    await saveProfile($name.trim(), $email.trim());
   }
 
-  async function savePhoto(event) {
+  async function submitPhoto(event: SubmitEvent) {
     event.preventDefault();
-    if (!photo) {
-      await showWarningDialog("Pilih foto terlebih dahulu");
+    if (photoFile && (await savePhoto(photoFile))) photoFile = null;
+  }
+
+  async function submitPassword(event: SubmitEvent) {
+    event.preventDefault();
+    if ($next !== $confirmation) {
+      passwordError = "Konfirmasi kata sandi baru tidak sama";
       return;
     }
-    const res = await updatePhoto(photo);
-    await handleResult(res, () => {
-      photo = null;
-    });
-  }
-
-  async function savePassword(event) {
-    event.preventDefault();
-    const res = await changePassword({ password: $oldValue, new_password: $newValue });
-    await handleResult(res, () => {
-      oldPassword.reset();
-      newPassword.reset();
-    });
+    passwordError = "";
+    if (await savePassword($current, $next, $confirmation)) {
+      resetCurrent();
+      resetNext();
+      resetConfirmation();
+    }
   }
 </script>
 
-<section class="max-w-2xl space-y-6">
-  <h1 class="text-xl font-bold">Profil</h1>
+<section class="mx-auto max-w-2xl space-y-6">
+  <h1 class="text-2xl font-bold">Profil</h1>
 
-  <form onsubmit={saveProfile} class="bg-white border border-slate-200 rounded-xl p-4 space-y-3" data-testid="profile-form">
-    <h2 class="font-semibold">Data diri</h2>
-    {#if $profile && $profile.photo}
-      <img src={$profile.photo} alt="Foto profil" class="w-16 h-16 rounded-full object-cover" />
-    {/if}
-    <div>
-      <label for="profile-name" class="block text-sm font-medium mb-1">Nama</label>
-      <input id="profile-name" required value={$nameValue} oninput={name.onChange}
-        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-    </div>
-    <div>
-      <label for="profile-email" class="block text-sm font-medium mb-1">Email</label>
-      <input id="profile-email" type="email" required value={$emailValue} oninput={email.onChange}
-        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-    </div>
-    <button type="submit" class="rounded-lg bg-indigo-600 text-white px-4 py-2 text-sm font-semibold">Simpan</button>
+  <form class="space-y-4 rounded-2xl border border-ink-100 bg-white p-6" onsubmit={submitProfile}>
+    <h2 class="font-semibold">Data akun</h2>
+    <label class="block text-sm font-medium">
+      Nama
+      <input required bind:value={$name} class="mt-1 w-full rounded-xl border border-ink-200 px-3 py-2.5" />
+    </label>
+    <label class="block text-sm font-medium">
+      Email
+      <input type="email" required bind:value={$email} class="mt-1 w-full rounded-xl border border-ink-200 px-3 py-2.5" />
+    </label>
+    <button class="inline-flex items-center gap-2 rounded-xl bg-ink-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-ink-700">
+      <Save size={16} /> Simpan perubahan
+    </button>
   </form>
 
-  <form onsubmit={savePhoto} class="bg-white border border-slate-200 rounded-xl p-4 space-y-3" data-testid="photo-form">
+  <form class="space-y-4 rounded-2xl border border-ink-100 bg-white p-6" onsubmit={submitPhoto}>
     <h2 class="font-semibold">Foto profil</h2>
-    <input type="file" accept="image/*" aria-label="Pilih foto profil" onchange={onPhoto} data-testid="photo-input" class="text-sm" />
-    <button type="submit" class="rounded-lg bg-indigo-600 text-white px-4 py-2 text-sm font-semibold">Unggah foto</button>
+    <div class="flex items-center gap-5">
+      {#if profile}
+        <Avatar name={profile.name} src={profile.photo} size="lg" />
+      {/if}
+      <input
+        type="file"
+        accept="image/*"
+        aria-label="Berkas foto"
+        onchange={(event) => (photoFile = event.currentTarget.files?.[0] ?? null)}
+        class="text-sm"
+      />
+    </div>
+    <button
+      disabled={!photoFile}
+      class="inline-flex items-center gap-2 rounded-xl bg-ink-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-ink-700 disabled:opacity-50"
+    >
+      <Camera size={16} /> Ganti foto
+    </button>
   </form>
 
-  <form onsubmit={savePassword} class="bg-white border border-slate-200 rounded-xl p-4 space-y-3" data-testid="password-form">
-    <h2 class="font-semibold">Ubah kata sandi</h2>
-    <div>
-      <label for="old-password" class="block text-sm font-medium mb-1">Kata sandi lama</label>
-      <input id="old-password" type="password" required value={$oldValue} oninput={oldPassword.onChange}
-        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-    </div>
-    <div>
-      <label for="new-password" class="block text-sm font-medium mb-1">Kata sandi baru</label>
-      <input id="new-password" type="password" required value={$newValue} oninput={newPassword.onChange}
-        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-    </div>
-    <button type="submit" class="rounded-lg bg-indigo-600 text-white px-4 py-2 text-sm font-semibold">Ubah kata sandi</button>
+  <form class="space-y-4 rounded-2xl border border-ink-100 bg-white p-6" onsubmit={submitPassword}>
+    <h2 class="font-semibold">Kata sandi</h2>
+    <label class="block text-sm font-medium">
+      Kata sandi saat ini
+      <input type="password" required bind:value={$current} class="mt-1 w-full rounded-xl border border-ink-200 px-3 py-2.5" />
+    </label>
+    <label class="block text-sm font-medium">
+      Kata sandi baru
+      <input type="password" required minlength="6" bind:value={$next} class="mt-1 w-full rounded-xl border border-ink-200 px-3 py-2.5" />
+    </label>
+    <label class="block text-sm font-medium">
+      Ulangi kata sandi baru
+      <input type="password" required bind:value={$confirmation} class="mt-1 w-full rounded-xl border border-ink-200 px-3 py-2.5" />
+    </label>
+    {#if passwordError}
+      <p class="text-sm text-red-700" role="alert">{passwordError}</p>
+    {/if}
+    <button class="inline-flex items-center gap-2 rounded-xl bg-ink-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-ink-700">
+      <KeyRound size={16} /> Ubah kata sandi
+    </button>
   </form>
 </section>

@@ -1,48 +1,69 @@
-<script>
-  import { useInput } from "../../../hooks/useInput.js";
-  import { register } from "../states/authStore.js";
-  import { navigate, link } from "../../../router.js";
-  import { handleResult } from "../../../helpers/toolsHelper.js";
+<script lang="ts">
+  import { goto } from "$app/navigation";
+  import { UserPlus } from "lucide-svelte";
+  import { useInput } from "../../../hooks/useInput";
+  import AuthSessionRedirect from "../components/AuthSessionRedirect.svelte";
+  import AuthLayout from "../layouts/AuthLayout.svelte";
+  import { authStore, register } from "../states/authStore";
 
-  const name = useInput();
-  const email = useInput();
-  const password = useInput();
-  const nameValue = name.value;
-  const emailValue = email.value;
-  const passwordValue = password.value;
-  let loading = $state(false);
+  const { value: name } = useInput();
+  const { value: email } = useInput();
+  const { value: password } = useInput();
 
-  async function submit(event) {
+  async function submit(event: SubmitEvent) {
     event.preventDefault();
-    loading = true;
-    const res = await register($nameValue, $emailValue, $passwordValue);
-    loading = false;
-    await handleResult(res, () => navigate("/auth/login"));
+    if (await register($name.trim(), $email.trim(), $password)) {
+      await goto("/auth/login");
+    }
   }
 </script>
 
-<form onsubmit={submit} class="space-y-4" data-testid="register-form">
-  <h2 class="text-lg font-bold">Daftar</h2>
-  <div>
-    <label for="register-name-input" class="block text-sm font-medium mb-1">Nama</label>
-    <input id="register-name-input" type="text" required value={$nameValue} oninput={name.onChange}
-      class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-  </div>
-  <div>
-    <label for="register-email-input" class="block text-sm font-medium mb-1">Email</label>
-    <input id="register-email-input" type="email" required value={$emailValue} oninput={email.onChange}
-      class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-  </div>
-  <div>
-    <label for="register-password-input" class="block text-sm font-medium mb-1">Kata sandi</label>
-    <input id="register-password-input" type="password" required value={$passwordValue} oninput={password.onChange}
-      class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-  </div>
-  <button id="register-submit-button" type="submit" disabled={loading}
-    class="w-full rounded-lg bg-indigo-600 text-white py-2 text-sm font-semibold disabled:opacity-60">
-    {loading ? "Memproses..." : "Daftar"}
-  </button>
-  <p class="text-sm text-center text-slate-600">
-    Sudah punya akun? <a href="/auth/login" onclick={link} class="text-indigo-700 font-semibold underline">Masuk</a>
-  </p>
-</form>
+<AuthSessionRedirect mode="guest" />
+
+<AuthLayout title="Buat akun" subtitle="Daftar untuk membuat atau mengikuti kursus.">
+  <form class="space-y-4" onsubmit={submit}>
+    <label class="block text-sm font-medium">
+      Nama
+      <input
+        type="text"
+        required
+        autocomplete="name"
+        bind:value={$name}
+        class="mt-1 w-full rounded-xl border border-ink-200 bg-white px-3 py-2.5"
+      />
+    </label>
+    <label class="block text-sm font-medium">
+      Email
+      <input
+        type="email"
+        required
+        autocomplete="email"
+        bind:value={$email}
+        class="mt-1 w-full rounded-xl border border-ink-200 bg-white px-3 py-2.5"
+      />
+    </label>
+    <label class="block text-sm font-medium">
+      Kata sandi
+      <input
+        type="password"
+        required
+        minlength="6"
+        autocomplete="new-password"
+        bind:value={$password}
+        class="mt-1 w-full rounded-xl border border-ink-200 bg-white px-3 py-2.5"
+      />
+    </label>
+    <button
+      type="submit"
+      disabled={$authStore.loading}
+      class="flex w-full items-center justify-center gap-2 rounded-xl bg-ink-800 px-4 py-2.5 font-semibold text-white hover:bg-ink-700 disabled:opacity-60"
+    >
+      <UserPlus size={18} />
+      {$authStore.loading ? "Memproses..." : "Daftar"}
+    </button>
+  </form>
+
+  {#snippet footer()}
+    Sudah punya akun? <a href="/auth/login" class="font-semibold text-ink-800 underline">Masuk</a>
+  {/snippet}
+</AuthLayout>
