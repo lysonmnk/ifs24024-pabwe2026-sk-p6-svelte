@@ -1,43 +1,43 @@
-<script lang="ts">
-  import { BookOpen, PlayCircle, Star } from "lucide-svelte";
-  import type { Snippet } from "svelte";
-  import Logo from "../../../components/Logo.svelte";
+<script>
+  import { Link2 } from "lucide-svelte";
 
-  let {
-    title,
-    subtitle,
-    children,
-    footer,
-  }: { title: string; subtitle: string; children: Snippet; footer?: Snippet } = $props();
+  let { children } = $props();
 </script>
 
-<div class="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
-  <aside aria-label="Tentang Delcom Courses" class="hidden flex-col justify-between bg-ink-800 p-12 text-white lg:flex">
-    <Logo dark />
-    <div class="max-w-md">
-      <p class="text-3xl leading-tight font-bold">Belajar lewat video, kapan saja.</p>
-      <p class="mt-4 text-ink-200">
-        Delcom Courses adalah tempat membuat dan mengikuti kursus. Pengajar menyusun materi dari
-        video YouTube, peserta mendaftar, menandai materi yang selesai, lalu memberi rating.
+<main class="grid min-h-screen lg:grid-cols-[5fr_4fr]">
+  <section class="on-dark relative flex flex-col justify-between gap-10 overflow-hidden bg-pine-950 px-6 py-8 text-white sm:px-12 lg:py-14">
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 400 400"
+      fill="none"
+      class="pointer-events-none absolute -bottom-16 -right-16 hidden h-96 w-96 text-pine-700 lg:block"
+    >
+      <g stroke="currentColor" stroke-width="10" stroke-linecap="round">
+        <path d="M200 400V190" />
+        <path d="M200 280 110 190" />
+        <path d="M200 210 300 110" />
+        <path d="M110 190 70 130" />
+      </g>
+      <g fill="currentColor">
+        <circle cx="60" cy="115" r="26" />
+        <circle cx="305" cy="100" r="30" />
+        <circle cx="200" cy="170" r="22" />
+        <circle cx="110" cy="190" r="16" />
+      </g>
+    </svg>
+    <span class="relative flex size-12 items-center justify-center rounded-lg bg-marigold-400 text-pine-950">
+      <Link2 size={24} />
+    </span>
+    <div class="relative max-w-lg">
+      <h1 class="font-display text-4xl font-extrabold leading-tight sm:text-5xl">Delcom Link Tree</h1>
+      <p class="mt-4 text-lg text-pine-100">
+        Kumpulkan semua tautan pentingmu dalam satu halaman, lalu bagikan ke siapa saja.
       </p>
-      <ul class="mt-8 space-y-3 text-sm text-ink-100">
-        <li class="flex items-center gap-3"><BookOpen size={18} class="text-tassel-400" /> Temukan kursus dari pengguna lain</li>
-        <li class="flex items-center gap-3"><PlayCircle size={18} class="text-tassel-400" /> Ikuti materi video secara berurutan</li>
-        <li class="flex items-center gap-3"><Star size={18} class="text-tassel-400" /> Beri rating setelah selesai belajar</li>
-      </ul>
     </div>
-    <p class="text-xs text-ink-300">Delcom Courses &middot; Praktikum PABWE 2026</p>
-  </aside>
-
-  <main class="flex items-center justify-center p-6 sm:p-12">
-    <div class="w-full max-w-sm">
-      <div class="mb-8 lg:hidden"><Logo /></div>
-      <h1 class="text-2xl font-bold">{title}</h1>
-      <p class="mt-1 mb-6 text-sm text-ink-500">{subtitle}</p>
+  </section>
+  <div class="flex items-center justify-center bg-sage-100 px-4 py-10 sm:px-8">
+    <div class="card w-full max-w-md p-7 sm:p-8">
       {@render children()}
-      {#if footer}
-        <p class="mt-6 text-center text-sm text-ink-500">{@render footer()}</p>
-      {/if}
     </div>
-  </main>
-</div>
+  </div>
+</main>

@@ -1,43 +1,35 @@
-<script lang="ts">
-  import Avatar from "../../../components/Avatar.svelte";
-  import { formatDate } from "../../../helpers/toolsHelper";
-  import { authStore } from "../../auth/states/authStore";
-  import { loadUsers, usersStore } from "../states/usersStore";
+<script>
+  import { onMount } from "svelte";
+  import { users, isUsersLoading, fetchUsers } from "../states/userStore.js";
+  import { formatDate } from "../../../helpers/toolsHelper.js";
+  import Avatar from "../../common/components/Avatar.svelte";
 
-  const myId = $derived($authStore.profile?.id);
-
-  $effect(() => {
-    void loadUsers();
+  onMount(() => {
+    fetchUsers();
   });
 </script>
 
-<section class="mx-auto max-w-4xl">
-  <h1 class="text-2xl font-bold">Pengguna</h1>
-  <p class="mt-1 text-sm text-ink-500">Semua orang yang terdaftar di Delcom Courses.</p>
+<div class="space-y-6">
+  <h1 class="text-3xl font-extrabold text-ink sm:text-4xl">Pengguna</h1>
 
-  {#if $usersStore.loading}
-    <p class="mt-8 text-ink-500" role="status">Memuat pengguna...</p>
-  {:else if $usersStore.error}
-    <p class="mt-8 rounded-xl bg-red-50 p-4 text-red-800" role="alert">{$usersStore.error}</p>
-  {:else if $usersStore.users.length === 0}
-    <p class="mt-8 text-ink-500">Belum ada pengguna terdaftar.</p>
+  {#if $isUsersLoading}
+    <p class="py-12 text-center text-muted">Memuat data...</p>
+  {:else if $users.length === 0}
+    <p class="rounded-xl border-2 border-dashed border-sage-400 px-4 py-12 text-center text-muted">
+      Belum ada pengguna.
+    </p>
   {:else}
-    <ul class="mt-6 divide-y divide-ink-100 rounded-2xl border border-ink-100 bg-white">
-      {#each $usersStore.users as user (user.id)}
-        <li class="flex items-center gap-4 p-4">
-          <Avatar name={user.name} src={user.photo} />
+    <ul class="card divide-y divide-sage-200 overflow-hidden">
+      {#each $users as user (user.id)}
+        <li class="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3.5 sm:px-5">
+          <Avatar name={user.name} photo={user.photo} size="h-11 w-11" />
           <div class="min-w-0 flex-1">
-            <p class="truncate font-semibold">
-              <span>{user.name}</span>
-              {#if user.id === myId}
-                <span class="ml-2 rounded-full bg-tassel-100 px-2 py-0.5 text-xs text-tassel-700">Anda</span>
-              {/if}
-            </p>
-            <p class="truncate text-sm text-ink-500">{user.email}</p>
+            <p class="truncate font-bold text-ink">{user.name}</p>
+            <p class="truncate text-sm text-muted">{user.email}</p>
           </div>
-          <p class="hidden text-xs text-ink-500 sm:block">Bergabung {formatDate(user.created_at)}</p>
+          <p class="w-full pl-[3.75rem] text-sm text-muted sm:w-auto sm:pl-0">Bergabung {formatDate(user.created_at)}</p>
         </li>
       {/each}
     </ul>
   {/if}
-</section>
+</div>

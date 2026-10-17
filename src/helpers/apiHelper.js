@@ -1,37 +1,57 @@
-const TOKEN_KEY = "token";
+const ACCESS_TOKEN_KEY = "accessToken";
 
-export const getAccessToken = () => localStorage.getItem(TOKEN_KEY);
-export const putAccessToken = (token) => localStorage.setItem(TOKEN_KEY, token);
-export const removeAccessToken = () => localStorage.removeItem(TOKEN_KEY);
+export function getAccessToken() {
+  return localStorage.getItem(ACCESS_TOKEN_KEY);
+}
+
+export function putAccessToken(token) {
+  localStorage.setItem(ACCESS_TOKEN_KEY, token);
+}
+
+export function removeAccessToken() {
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+}
 
 /**
- * Pembungkus fetch ke REST API Delcom.
- * Mengembalikan JSON respons ({ status, message, data }).
- * Respons dianggap berhasil bila status bernilai "success".
+ * Pembungkus fetch ke Delcom Open API.
+ * Selalu mengembalikan objek JSON { status, message, data }.
+ * Kegagalan jaringan / respons non-JSON diubah menjadi { status: "fail" }.
  */
-export async function request(path, { method = "GET", body, form } = {}) {
-  const headers = {};
+export async function apiRequest(
+  path,
+  { method = "GET", body, formData, auth = true } = {}
+) {
+  const headers = { Accept: "application/json" };
   const token = getAccessToken();
-  if (token) headers.Authorization = `Bearer ${token}`;
+
+  if (auth && token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
 
   let payload;
-  if (form) {
-    payload = form;
+  if (formData) {
+    payload = formData;
   } else if (body) {
     headers["Content-Type"] = "application/json";
     payload = JSON.stringify(body);
   }
 
   try {
-    const response = await fetch(`${DELCOM_BASEURL}${path}`, {
+    const response = await fetch(`${DELCOM_API_URL}${path}`, {
       method,
       headers,
       body: payload,
     });
     return await response.json();
   } catch {
-    return { status: "error", message: "Tidak dapat terhubung ke server" };
+    return { status: "fail", message: "Gagal terhubung ke server" };
   }
 }
 
-export const isSuccess = (response) => response.status === "success";
+/** Gabungkan pesan utama dengan detail validasi per field (bila ada). */
+export function getErrorMessage(res) {
+  const details = Object.values(res.data ?? {})
+    .flat()
+    .join("\n");
+  return details ? `${res.message}\n${details}` : res.message;
+}

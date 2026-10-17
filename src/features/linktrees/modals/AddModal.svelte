@@ -1,50 +1,72 @@
 <script>
-  import ModalShell from "../components/ModalShell.svelte";
+  import Modal from "../../common/components/Modal.svelte";
   import { useInput } from "../../../hooks/useInput.js";
-  import { addLinkTree } from "../states/linkTreesStore.js";
-  import { handleResult } from "../../../helpers/toolsHelper.js";
+  import { showWarningDialog } from "../../../helpers/toolsHelper.js";
+  import { TYPE_OPTIONS } from "../linkTreeTypes.js";
+  import { addLinkTree, isAdding } from "../states/linkTreesStore.js";
 
-  let { onClose } = $props();
+  let { onclose, options = TYPE_OPTIONS } = $props();
 
-  const title = useInput();
+  const title = useInput("");
   const type = useInput("public");
-  const description = useInput();
-  const titleValue = title.value;
-  const typeValue = type.value;
-  const descriptionValue = description.value;
+  const description = useInput("");
 
   async function submit(event) {
     event.preventDefault();
-    const res = await addLinkTree({
-      title: $titleValue,
-      type: $typeValue,
-      description: $descriptionValue,
+    if (!$title.trim()) {
+      await showWarningDialog("Judul wajib diisi");
+      return;
+    }
+    const ok = await addLinkTree({
+      title: $title.trim(),
+      type: $type,
+      description: $description,
     });
-    await handleResult(res, onClose);
+    if (ok) onclose();
   }
 </script>
 
-<ModalShell title="Tambah Link Tree" {onClose}>
-  <form onsubmit={submit} class="space-y-3" data-testid="add-form">
+<Modal title="Tambah Link Tree" {onclose}>
+  <form onsubmit={submit} class="space-y-5">
     <div>
-      <label for="add-title" class="block text-sm font-medium mb-1">Judul</label>
-      <input id="add-title" required value={$titleValue} oninput={title.onChange}
-        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+      <label for="add-title" class="field-label">Judul</label>
+      <input
+        id="add-title"
+        type="text"
+        value={$title}
+        oninput={title.onChange}
+        class="field"
+      />
     </div>
     <div>
-      <label for="add-type" class="block text-sm font-medium mb-1">Tipe</label>
-      <select id="add-type" bind:value={$typeValue}
-        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-        <option value="public">Public</option>
-        <option value="unlisted">Unlisted</option>
-        <option value="private">Private</option>
+      <label for="add-type" class="field-label">Tipe</label>
+      <select
+        id="add-type"
+        value={$type}
+        onchange={type.onChange}
+        class="field"
+      >
+        {#each options as option (option.value)}
+          <option value={option.value}>{option.label}</option>
+        {/each}
       </select>
     </div>
     <div>
-      <label for="add-description" class="block text-sm font-medium mb-1">Deskripsi</label>
-      <textarea id="add-description" rows="3" required value={$descriptionValue} oninput={description.onChange}
-        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></textarea>
+      <label for="add-description" class="field-label">Deskripsi</label>
+      <textarea
+        id="add-description"
+        rows="3"
+        value={$description}
+        oninput={description.onChange}
+        class="field"
+      ></textarea>
     </div>
-    <button type="submit" class="w-full rounded-lg bg-indigo-600 text-white py-2 text-sm font-semibold">Simpan</button>
+    <button
+      type="submit"
+      disabled={$isAdding}
+      class="btn-primary w-full"
+    >
+      {$isAdding ? "Menyimpan..." : "Simpan"}
+    </button>
   </form>
-</ModalShell>
+</Modal>

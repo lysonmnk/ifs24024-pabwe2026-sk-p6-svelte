@@ -1,12 +1,13 @@
 <script>
-  import { link } from "../../../router.js";
+  import { Link2 } from "lucide-svelte";
+  import NavLink from "../components/NavLink.svelte";
 </script>
 
-<div class="min-h-screen flex flex-col items-center justify-center text-center p-6">
-  <p class="text-6xl font-extrabold text-indigo-600">404</p>
-  <h1 class="text-xl font-bold mt-2">Halaman tidak ditemukan</h1>
-  <p class="text-slate-500 mt-1">Alamat yang kamu tuju tidak tersedia.</p>
-  <a href="/" onclick={link} class="mt-4 rounded-lg bg-indigo-600 text-white px-4 py-2 text-sm font-semibold">
-    Kembali ke beranda
-  </a>
-</div>
+<main
+  class="on-dark flex min-h-screen flex-col items-start justify-center gap-5 bg-pine-950 px-8 py-16 text-white sm:px-20"
+>
+  <Link2 size={40} class="text-marigold-400" />
+  <h1 class="font-display text-8xl font-extrabold leading-none text-marigold-400 sm:text-9xl">404</h1>
+  <p class="max-w-md text-lg text-pine-100">Halaman yang kamu cari tidak ditemukan.</p>
+  <NavLink href="/" class="btn-primary">Kembali ke Beranda</NavLink>
+</main>

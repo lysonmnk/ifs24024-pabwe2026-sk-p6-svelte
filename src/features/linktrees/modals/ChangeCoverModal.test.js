@@ -1,24 +1,59 @@
-import Swal from "sweetalert2";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen, fireEvent, waitFor } from "@testing-library/svelte";
+import { renderWithProviders } from "../../../test-utils.js";
+
+vi.mock("../../../helpers/toolsHelper.js", async (importOriginal) => ({
+  ...(await importOriginal()),
+  showWarningDialog: vi.fn(),
+}));
+vi.mock("../states/linkTreesStore.js", async (importOriginal) => ({
+  ...(await importOriginal()),
+  changeCover: vi.fn(),
+}));
+
+import { showWarningDialog } from "../../../helpers/toolsHelper.js";
+import { changeCover, isChangingCover } from "../states/linkTreesStore.js";
 import ChangeCoverModal from "./ChangeCoverModal.svelte";
-import { renderWithProviders, mockApi, okResponse, sampleTree } from "../../../test-utils.js";
+
+const submit = () => fireEvent.submit(screen.getByRole("button", { name: "Unggah" }).closest("form"));
+const file = new File(["x"], "c.png", { type: "image/png" });
 
 describe("ChangeCoverModal", () => {
-  it("memperingatkan bila berkas kosong, lalu mengunggah", async () => {
-    const onClose = vi.fn();
-    const fetchMock = mockApi({
-      "POST /link-trees/t1/cover": okResponse({}, "Sampul diubah"),
-      "GET /link-trees/t1": okResponse({ link_tree: sampleTree }),
-    });
-    renderWithProviders(ChangeCoverModal, { linkTreeId: "t1", onClose });
-    await fireEvent.submit(screen.getByTestId("cover-form"));
-    await waitFor(() => expect(Swal.fire).toHaveBeenCalledWith(expect.objectContaining({ icon: "warning" })));
-    expect(fetchMock).not.toHaveBeenCalled();
+  beforeEach(() => {
+    vi.clearAllMocks();
+    isChangingCover.set(false);
+  });
 
-    const file = new File(["x"], "c.png", { type: "image/png" });
-    await fireEvent.change(screen.getByTestId("cover-input"), { target: { files: [file] } });
-    await fireEvent.submit(screen.getByTestId("cover-form"));
-    await waitFor(() => expect(onClose).toHaveBeenCalled());
-    expect(fetchMock.mock.calls[0][1].body.get("cover")).toBeInstanceOf(File);
+  it("menolak bila belum memilih berkas", async () => {
+    renderWithProviders(ChangeCoverModal, { props: { linkTreeId: 7, onclose: vi.fn() } });
+    await submit();
+    await waitFor(() => expect(showWarningDialog).toHaveBeenCalled());
+    expect(changeCover).not.toHaveBeenCalled();
+  });
+
+  it("berhasil mengunggah dan menutup", async () => {
+    changeCover.mockResolvedValue(true);
+    const onclose = vi.fn();
+    renderWithProviders(ChangeCoverModal, { props: { linkTreeId: 7, onclose } });
+    await fireEvent.change(screen.getByLabelText("Gambar Sampul"), { target: { files: [file] } });
+    await submit();
+    await waitFor(() => expect(onclose).toHaveBeenCalled());
+    expect(changeCover).toHaveBeenCalledWith(7, file);
+  });
+
+  it("gagal tidak menutup modal", async () => {
+    changeCover.mockResolvedValue(false);
+    const onclose = vi.fn();
+    renderWithProviders(ChangeCoverModal, { props: { linkTreeId: 7, onclose } });
+    await fireEvent.change(screen.getByLabelText("Gambar Sampul"), { target: { files: [file] } });
+    await submit();
+    await waitFor(() => expect(changeCover).toHaveBeenCalled());
+    expect(onclose).not.toHaveBeenCalled();
+  });
+
+  it("tombol nonaktif saat mengunggah", async () => {
+    renderWithProviders(ChangeCoverModal, { props: { linkTreeId: 7, onclose: vi.fn() } });
+    isChangingCover.set(true);
+    expect(await screen.findByRole("button", { name: "Mengunggah..." })).toBeDisabled();
   });
 });

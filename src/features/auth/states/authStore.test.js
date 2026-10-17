@@ -1,50 +1,108 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { get } from "svelte/store";
-import { authToken, isAuthLogin, isAuthRegister, login, register, logout } from "./authStore.js";
-import { profile } from "../../users/states/usersStore.js";
-import { getAccessToken } from "../../../helpers/apiHelper.js";
-import { mockApi, okResponse, failResponse, resetAllStores, sampleUser } from "../../../test-utils.js";
 
-describe("authStore", () => {
-  beforeEach(resetAllStores);
+vi.mock("../api/authApi.js", () => ({
+  postLogin: vi.fn(),
+  postRegister: vi.fn(),
+  postLogout: vi.fn(),
+}));
+vi.mock("../../users/api/userApi.js", () => ({ getProfile: vi.fn() }));
+vi.mock("../../../helpers/toolsHelper.js", () => ({
+  showErrorDialog: vi.fn(),
+  showSuccessDialog: vi.fn(),
+}));
 
-  it("login berhasil menyimpan token dan memuat profil", async () => {
-    mockApi({
-      "POST /auth/login": okResponse({ token: "tok" }),
-      "GET /users/me": okResponse({ user: sampleUser }),
-    });
-    const res = await login("a@a.com", "pw");
-    expect(res.status).toBe("success");
-    expect(get(authToken)).toBe("tok");
-    expect(getAccessToken()).toBe("tok");
-    expect(get(isAuthLogin)).toBe(true);
-    expect(get(profile)).toEqual(sampleUser);
+import { postLogin, postRegister, postLogout } from "../api/authApi.js";
+import { getProfile } from "../../users/api/userApi.js";
+import { showErrorDialog, showSuccessDialog } from "../../../helpers/toolsHelper.js";
+import { getAccessToken, putAccessToken } from "../../../helpers/apiHelper.js";
+import {
+  authProfile,
+  isPreload,
+  isAuthLogin,
+  isAuthRegister,
+  isAuthLogout,
+  loadProfile,
+  login,
+  register,
+  logout,
+} from "./authStore.js";
+
+const user = { id: 1, name: "Delcom" };
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  localStorage.clear();
+  authProfile.set(null);
+  isPreload.set(true);
+});
+
+describe("loadProfile", () => {
+  it("tanpa token langsung selesai preload", async () => {
+    await loadProfile();
+    expect(getProfile).not.toHaveBeenCalled();
+    expect(get(isPreload)).toBe(false);
   });
 
-  it("login gagal tidak mengubah state", async () => {
-    mockApi({ "POST /auth/login": failResponse("salah") });
-    const res = await login("a", "b");
-    expect(res.message).toBe("salah");
-    expect(get(authToken)).toBeNull();
+  it("mengisi profil bila token valid", async () => {
+    putAccessToken("tok");
+    getProfile.mockResolvedValue({ status: "success", data: { user } });
+    await loadProfile();
+    expect(get(authProfile)).toEqual(user);
+    expect(get(isPreload)).toBe(false);
+  });
+
+  it("membersihkan token bila tidak valid", async () => {
+    putAccessToken("tok");
+    getProfile.mockResolvedValue({ status: "fail", message: "Unauthenticated." });
+    await loadProfile();
+    expect(getAccessToken()).toBeNull();
+    expect(get(authProfile)).toBeNull();
+    expect(get(isPreload)).toBe(false);
+  });
+});
+
+describe("login", () => {
+  it("berhasil: simpan token dan muat profil", async () => {
+    postLogin.mockResolvedValue({ status: "success", data: { token: "t1", user } });
+    getProfile.mockResolvedValue({ status: "success", data: { user } });
+    expect(await login({ email: "a", password: "b" })).toBe(true);
+    expect(getAccessToken()).toBe("t1");
+    expect(get(authProfile)).toEqual(user);
     expect(get(isAuthLogin)).toBe(false);
   });
 
-  it("register berhasil dan gagal", async () => {
-    mockApi({ "POST /auth/register": okResponse() });
-    await register("n", "e", "p");
-    expect(get(isAuthRegister)).toBe(true);
-    isAuthRegister.set(false);
-    mockApi({ "POST /auth/register": failResponse() });
-    await register("n", "e", "p");
+  it("gagal: tampilkan dialog error", async () => {
+    postLogin.mockResolvedValue({ status: "fail", message: "Kredensial akun tidak ditemukan" });
+    expect(await login({ email: "a", password: "b" })).toBe(false);
+    expect(showErrorDialog).toHaveBeenCalledWith("Kredensial akun tidak ditemukan");
+    expect(getAccessToken()).toBeNull();
+  });
+});
+
+describe("register", () => {
+  it("berhasil", async () => {
+    postRegister.mockResolvedValue({ status: "success", message: "Berhasil melakukan pendaftaran" });
+    expect(await register({ name: "n", email: "e", password: "p" })).toBe(true);
+    expect(showSuccessDialog).toHaveBeenCalledWith("Berhasil melakukan pendaftaran");
     expect(get(isAuthRegister)).toBe(false);
   });
 
-  it("logout menghapus sesi", () => {
-    localStorage.setItem("token", "x");
-    authToken.set("x");
-    profile.set(sampleUser);
-    logout();
+  it("gagal", async () => {
+    postRegister.mockResolvedValue({ status: "fail", message: "Data tidak valid", data: { email: ["Email sudah dipakai"] } });
+    expect(await register({ name: "n", email: "e", password: "p" })).toBe(false);
+    expect(showErrorDialog).toHaveBeenCalledWith("Data tidak valid\nEmail sudah dipakai");
+  });
+});
+
+describe("logout", () => {
+  it("menghapus token dan profil", async () => {
+    putAccessToken("tok");
+    authProfile.set(user);
+    postLogout.mockResolvedValue({ status: "success" });
+    await logout();
     expect(getAccessToken()).toBeNull();
-    expect(get(authToken)).toBeNull();
-    expect(get(profile)).toBeNull();
+    expect(get(authProfile)).toBeNull();
+    expect(get(isAuthLogout)).toBe(false);
   });
 });

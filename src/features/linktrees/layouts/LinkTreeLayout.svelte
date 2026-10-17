@@ -1,27 +1,19 @@
 <script>
-  import { onMount } from "svelte";
-  import LinkTreeNavbar from "../components/LinkTreeNavbar.svelte";
-  import LinkTreeSidebar from "../components/LinkTreeSidebar.svelte";
-  import { profile, loadProfile } from "../../users/states/usersStore.js";
-  import { logout } from "../../auth/states/authStore.js";
-  import { isSuccess } from "../../../helpers/apiHelper.js";
+  import Navbar from "../components/Navbar.svelte";
+  import Sidebar from "../components/Sidebar.svelte";
 
   let { children } = $props();
-
-  onMount(async () => {
-    if (!$profile) {
-      const res = await loadProfile();
-      if (!isSuccess(res)) logout();
-    }
-  });
 </script>
 
-<div class="min-h-screen flex flex-col">
-  <LinkTreeNavbar />
-  <div class="flex flex-1">
-    <LinkTreeSidebar />
-    <main class="flex-1 p-4 sm:p-6 min-w-0">
-      {@render children()}
+<!-- Bingkai gelap (header + rel) membungkus kanvas konten yang terang. -->
+<div class="min-h-screen bg-pine-950">
+  <Navbar />
+  <div class="md:grid md:grid-cols-[15rem_minmax(0,1fr)]">
+    <Sidebar />
+    <main class="min-h-[calc(100vh-4rem)] min-w-0 bg-sage-100 px-4 pb-28 pt-7 sm:px-8 md:rounded-tl-3xl md:pb-12 md:pt-9">
+      <div class="mx-auto max-w-5xl">
+        {@render children()}
+      </div>
     </main>
   </div>
 </div>

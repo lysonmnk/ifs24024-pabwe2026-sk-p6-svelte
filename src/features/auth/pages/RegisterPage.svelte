@@ -1,69 +1,65 @@
-<script lang="ts">
-  import { goto } from "$app/navigation";
-  import { UserPlus } from "lucide-svelte";
-  import { useInput } from "../../../hooks/useInput";
-  import AuthSessionRedirect from "../components/AuthSessionRedirect.svelte";
-  import AuthLayout from "../layouts/AuthLayout.svelte";
-  import { authStore, register } from "../states/authStore";
+<script>
+  import { useInput } from "../../../hooks/useInput.js";
+  import { navigate } from "../../../router.js";
+  import { register, isAuthRegister } from "../states/authStore.js";
+  import NavLink from "../../common/components/NavLink.svelte";
 
-  const { value: name } = useInput();
-  const { value: email } = useInput();
-  const { value: password } = useInput();
+  const name = useInput("");
+  const email = useInput("");
+  const password = useInput("");
 
-  async function submit(event: SubmitEvent) {
+  async function submit(event) {
     event.preventDefault();
-    if (await register($name.trim(), $email.trim(), $password)) {
-      await goto("/auth/login");
-    }
+    const ok = await register({ name: $name, email: $email, password: $password });
+    if (ok) navigate("/auth/login");
   }
 </script>
 
-<AuthSessionRedirect mode="guest" />
-
-<AuthLayout title="Buat akun" subtitle="Daftar untuk membuat atau mengikuti kursus.">
-  <form class="space-y-4" onsubmit={submit}>
-    <label class="block text-sm font-medium">
-      Nama
-      <input
-        type="text"
-        required
-        autocomplete="name"
-        bind:value={$name}
-        class="mt-1 w-full rounded-xl border border-ink-200 bg-white px-3 py-2.5"
-      />
-    </label>
-    <label class="block text-sm font-medium">
-      Email
-      <input
-        type="email"
-        required
-        autocomplete="email"
-        bind:value={$email}
-        class="mt-1 w-full rounded-xl border border-ink-200 bg-white px-3 py-2.5"
-      />
-    </label>
-    <label class="block text-sm font-medium">
-      Kata sandi
-      <input
-        type="password"
-        required
-        minlength="6"
-        autocomplete="new-password"
-        bind:value={$password}
-        class="mt-1 w-full rounded-xl border border-ink-200 bg-white px-3 py-2.5"
-      />
-    </label>
-    <button
-      type="submit"
-      disabled={$authStore.loading}
-      class="flex w-full items-center justify-center gap-2 rounded-xl bg-ink-800 px-4 py-2.5 font-semibold text-white hover:bg-ink-700 disabled:opacity-60"
-    >
-      <UserPlus size={18} />
-      {$authStore.loading ? "Memproses..." : "Daftar"}
-    </button>
-  </form>
-
-  {#snippet footer()}
-    Sudah punya akun? <a href="/auth/login" class="font-semibold text-ink-800 underline">Masuk</a>
-  {/snippet}
-</AuthLayout>
+<h2 class="mb-6 text-3xl font-extrabold text-ink">Daftar</h2>
+<form onsubmit={submit} class="space-y-5">
+  <div>
+    <label for="register-name-input" class="field-label">Nama</label>
+    <input
+      id="register-name-input"
+      type="text"
+      required
+      value={$name}
+      oninput={name.onChange}
+      class="field"
+    />
+  </div>
+  <div>
+    <label for="register-email-input" class="field-label">Email</label>
+    <input
+      id="register-email-input"
+      type="email"
+      required
+      value={$email}
+      oninput={email.onChange}
+      class="field"
+    />
+  </div>
+  <div>
+    <label for="register-password-input" class="field-label">Kata Sandi</label>
+    <input
+      id="register-password-input"
+      type="password"
+      required
+      value={$password}
+      oninput={password.onChange}
+      class="field"
+    />
+  </div>
+  <button
+    id="register-submit-button"
+    type="submit"
+    disabled={$isAuthRegister}
+    class="btn-primary w-full"
+  >
+    {$isAuthRegister ? "Memproses..." : "Daftar"}
+  </button>
+</form>
+<p class="mt-6 text-center text-sm text-muted">
+  Sudah punya akun?
+  <NavLink href="/auth/login" class="font-bold text-pine-700 underline underline-offset-4 hover:text-pine-900">Masuk</NavLink>
+</p>

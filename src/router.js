@@ -1,28 +1,43 @@
 import { writable } from "svelte/store";
 
-export const currentPath = writable(window.location.pathname);
+export const currentPath = writable(globalThis.location.pathname);
 
-export function navigate(path, { replace = false } = {}) {
-  window.history[replace ? "replaceState" : "pushState"]({}, "", path);
+const routes = [
+  { pattern: /^\/auth\/login\/?$/, name: "login", layout: "auth", keys: [] },
+  { pattern: /^\/auth\/register\/?$/, name: "register", layout: "auth", keys: [] },
+  { pattern: /^\/$/, name: "home", layout: "app", keys: [] },
+  {
+    pattern: /^\/link-trees\/([^/]+)\/?$/,
+    name: "detail",
+    layout: "app",
+    keys: ["linkTreeId"],
+  },
+  { pattern: /^\/users\/?$/, name: "users", layout: "app", keys: [] },
+  { pattern: /^\/profile\/?$/, name: "profile", layout: "app", keys: [] },
+];
+
+export function resolveRoute(path) {
+  for (const route of routes) {
+    const match = route.pattern.exec(path);
+    if (match) {
+      const params = Object.fromEntries(
+        route.keys.map((key, index) => [key, decodeURIComponent(match[index + 1])])
+      );
+      return { name: route.name, layout: route.layout, params };
+    }
+  }
+  return { name: "notFound", layout: "plain", params: {} };
+}
+
+export function navigate(path, replace = false) {
+  if (replace) {
+    globalThis.history.replaceState({}, "", path);
+  } else {
+    globalThis.history.pushState({}, "", path);
+  }
   currentPath.set(path);
 }
 
-export function link(event) {
-  event.preventDefault();
-  navigate(event.currentTarget.getAttribute("href"));
-}
-
-window.addEventListener("popstate", () => currentPath.set(window.location.pathname));
-
-const NOT_FOUND = { layout: "none", page: "notfound", params: {} };
-
-export function resolveRoute(path) {
-  if (path === "/auth/login") return { layout: "auth", page: "login", params: {} };
-  if (path === "/auth/register") return { layout: "auth", page: "register", params: {} };
-  if (path === "/") return { layout: "app", page: "home", params: {} };
-  if (path === "/users") return { layout: "app", page: "users", params: {} };
-  if (path === "/profile") return { layout: "app", page: "profile", params: {} };
-  const detail = path.match(/^\/link-trees\/([^/]+)$/);
-  if (detail) return { layout: "app", page: "detail", params: { linkTreeId: detail[1] } };
-  return NOT_FOUND;
-}
+globalThis.addEventListener("popstate", () => {
+  currentPath.set(globalThis.location.pathname);
+});

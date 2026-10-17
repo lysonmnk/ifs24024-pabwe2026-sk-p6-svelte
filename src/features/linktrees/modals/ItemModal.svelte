@@ -1,38 +1,60 @@
 <script>
-  import ModalShell from "../components/ModalShell.svelte";
+  import Modal from "../../common/components/Modal.svelte";
   import { useInput } from "../../../hooks/useInput.js";
-  import { addItem, changeItem } from "../states/linkTreesStore.js";
-  import { handleResult } from "../../../helpers/toolsHelper.js";
+  import { showWarningDialog } from "../../../helpers/toolsHelper.js";
+  import { addItem, changeItem, isItemMutating } from "../states/linkTreesStore.js";
 
-  let { linkTreeId, item, onClose } = $props();
+  let { linkTreeId, item, onclose } = $props();
 
-  const title = useInput(item ? item.title : "");
-  const url = useInput(item ? item.url : "");
-  const titleValue = title.value;
-  const urlValue = url.value;
+  // nilai awal dibaca lewat closure: modal dipasang ulang tiap dibuka
+  const initial = (field) => (item ? item[field] : "");
+
+  const title = useInput(initial("title"));
+  const url = useInput(initial("url"));
 
   async function submit(event) {
     event.preventDefault();
-    const data = { title: $titleValue, url: $urlValue };
-    const res = item
-      ? await changeItem(linkTreeId, item.id, data)
-      : await addItem(linkTreeId, data);
-    await handleResult(res, onClose);
+    if (!$title.trim() || !$url.trim()) {
+      await showWarningDialog("Judul dan URL wajib diisi");
+      return;
+    }
+    const payload = { title: $title.trim(), url: $url.trim() };
+    const ok = item
+      ? await changeItem(linkTreeId, item.id, payload)
+      : await addItem(linkTreeId, payload);
+    if (ok) onclose();
   }
 </script>
 
-<ModalShell title={item ? "Ubah Tautan" : "Tambah Tautan"} {onClose}>
-  <form onsubmit={submit} class="space-y-3" data-testid="item-form">
+<Modal title={item ? "Ubah Tautan" : "Tambah Tautan"} {onclose}>
+  <form onsubmit={submit} class="space-y-5">
     <div>
-      <label for="item-title" class="block text-sm font-medium mb-1">Judul tautan</label>
-      <input id="item-title" required value={$titleValue} oninput={title.onChange}
-        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+      <label for="item-title" class="field-label">Judul Tautan</label>
+      <input
+        id="item-title"
+        type="text"
+        value={$title}
+        oninput={title.onChange}
+        class="field"
+      />
     </div>
     <div>
-      <label for="item-url" class="block text-sm font-medium mb-1">URL</label>
-      <input id="item-url" type="url" required value={$urlValue} oninput={url.onChange}
-        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+      <label for="item-url" class="field-label">URL</label>
+      <input
+        id="item-url"
+        type="url"
+        placeholder="https://"
+        value={$url}
+        oninput={url.onChange}
+        class="field"
+      />
     </div>
-    <button type="submit" class="w-full rounded-lg bg-indigo-600 text-white py-2 text-sm font-semibold">Simpan</button>
+    <button
+      type="submit"
+      disabled={$isItemMutating}
+      class="btn-primary w-full"
+    >
+      {$isItemMutating ? "Menyimpan..." : "Simpan"}
+    </button>
   </form>
-</ModalShell>
+</Modal>

@@ -1,44 +1,59 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+vi.mock("sweetalert2", () => ({ default: { fire: vi.fn() } }));
+
 import Swal from "sweetalert2";
 import {
   showSuccessDialog,
   showErrorDialog,
   showWarningDialog,
   showConfirmDialog,
-  handleResult,
   formatDate,
   cn,
+  resolveAssetUrl,
+  hasImage,
 } from "./toolsHelper.js";
 
-describe("toolsHelper", () => {
-  beforeEach(() => vi.clearAllMocks());
+beforeEach(() => vi.clearAllMocks());
 
-  it("menampilkan dialog sukses, galat, dan peringatan", async () => {
-    await showSuccessDialog("a");
-    await showErrorDialog("b");
-    await showWarningDialog("c");
-    expect(Swal.fire.mock.calls.map((c) => c[0].icon)).toEqual(["success", "error", "warning"]);
+describe("dialog", () => {
+  it("success", async () => {
+    await showSuccessDialog("ok");
+    expect(Swal.fire).toHaveBeenCalledWith(expect.objectContaining({ icon: "success", text: "ok" }));
   });
-
-  it("dialog konfirmasi mengembalikan pilihan pengguna", async () => {
+  it("error", async () => {
+    await showErrorDialog("gagal");
+    expect(Swal.fire).toHaveBeenCalledWith(expect.objectContaining({ icon: "error", text: "gagal" }));
+  });
+  it("warning", async () => {
+    await showWarningDialog("hati-hati");
+    expect(Swal.fire).toHaveBeenCalledWith(expect.objectContaining({ icon: "warning", text: "hati-hati" }));
+  });
+  it("confirm mengembalikan isConfirmed", async () => {
+    Swal.fire.mockResolvedValueOnce({ isConfirmed: true });
     expect(await showConfirmDialog("yakin?")).toBe(true);
     Swal.fire.mockResolvedValueOnce({ isConfirmed: false });
     expect(await showConfirmDialog("yakin?")).toBe(false);
   });
+});
 
-  it("handleResult menjalankan callback hanya saat sukses", async () => {
-    const onSuccess = vi.fn();
-    expect(await handleResult({ status: "success", message: "ok" }, onSuccess)).toBe(true);
-    expect(onSuccess).toHaveBeenCalledTimes(1);
-    expect(await handleResult({ status: "fail", message: "gagal" }, onSuccess)).toBe(false);
-    expect(onSuccess).toHaveBeenCalledTimes(1);
-    expect(Swal.fire.mock.calls[1][0].icon).toBe("error");
+describe("util", () => {
+  it("formatDate memakai locale Indonesia", () => {
+    expect(formatDate("2025-03-09T01:32:33.000000Z")).toMatch(/2025/);
   });
-
-  it("memformat tanggal Indonesia", () => {
-    expect(formatDate("2026-01-15T00:00:00Z")).toMatch(/2026/);
+  it("cn menggabungkan dan menyelesaikan konflik class", () => {
+    expect(cn("p-2", false, "p-4")).toBe("p-4");
   });
-
-  it("cn menggabungkan kelas Tailwind", () => {
-    expect(cn("px-2", false, "px-4")).toBe("px-4");
+  it("resolveAssetUrl", () => {
+    expect(resolveAssetUrl("")).toBe("");
+    expect(resolveAssetUrl("https://x.test/a.png")).toBe("https://x.test/a.png");
+    const origin = new URL(DELCOM_BASEURL).origin;
+    expect(resolveAssetUrl("img/a.png")).toBe(`${origin}/img/a.png`);
+    expect(resolveAssetUrl("/img/a.png")).toBe(`${origin}/img/a.png`);
+  });
+  it("hasImage", () => {
+    expect(hasImage(undefined)).toBe(false);
+    expect(hasImage("http://localhost:8000/")).toBe(false);
+    expect(hasImage("http://localhost:8000/img/a.png")).toBe(true);
   });
 });

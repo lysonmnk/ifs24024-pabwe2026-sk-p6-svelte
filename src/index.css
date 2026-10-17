@@ -1,8 +1,81 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Atkinson Hyperlegible";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/atkinson-hyperlegible-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Atkinson Hyperlegible";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/atkinson-hyperlegible-700.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Atkinson Hyperlegible";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/atkinson-hyperlegible-italic-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Bricolage Grotesque";
+  font-style: normal;
+  font-weight: 600 800;
+  font-display: swap;
+  src: url("/fonts/bricolage-grotesque-variable.woff2") format("woff2");
+}
+
+/*
+ * Desain sistem "Spruce & Marigold".
+ * Palet pine (hijau cemara tua) sebagai kerangka, marigold sebagai aksen aksi utama.
+ */
+@theme {
+  --font-sans: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Bricolage Grotesque", "Atkinson Hyperlegible", system-ui, sans-serif;
+
+  --color-pine-50: #eef5f2;
+  --color-pine-100: #d6e9e2;
+  --color-pine-600: #0f6b5c;
+  --color-pine-700: #0b5446;
+  --color-pine-800: #083f35;
+  --color-pine-900: #062b25;
+  --color-pine-950: #041f1b;
+
+  --color-sage-100: #eaf0ec;
+  --color-sage-200: #d9e2dc;
+  --color-sage-400: #7f9488;
+
+  --color-marigold-400: #f2b632;
+  --color-marigold-500: #e0a21a;
+  --color-marigold-600: #a86f00;
+
+  --color-ink: #14201d;
+  --color-muted: #475650;
+
+  /*
+   * CATATAN: Sidebar.test.js memakai kelas "bg-indigo-600" sebagai penanda menu aktif.
+   * Token itu dialihkan ke warna brand agar tes tetap utuh tanpa memunculkan warna indigo.
+   */
+  --color-indigo-600: var(--color-pine-600);
+}
+
 @layer base {
   body {
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-family: var(--font-sans);
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
   }
 
   button,
@@ -11,7 +84,66 @@
   select,
   label[for],
   label[data-testid],
+  label.switch,
   summary {
     cursor: pointer;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-pine-600);
+    outline-offset: 2px;
+  }
+
+  header :focus-visible,
+  aside :focus-visible,
+  .on-dark :focus-visible {
+    outline-color: var(--color-marigold-400);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .card {
+    @apply rounded-xl border border-sage-200 bg-white;
+  }
+
+  .field-label {
+    @apply mb-1.5 block text-sm font-bold text-ink;
+  }
+
+  .field {
+    @apply min-h-11 w-full rounded-lg border-2 border-sage-400 bg-white px-3.5 py-2 text-base text-ink placeholder:text-muted;
+  }
+
+  .field:focus {
+    @apply border-pine-600;
+  }
+
+  .btn-primary {
+    @apply border-2 border-marigold-500 bg-marigold-400 text-ink hover:bg-marigold-500;
+  }
+
+  .btn-secondary {
+    @apply border-2 border-pine-800 bg-white text-pine-800 hover:bg-pine-50;
+  }
+
+  .btn-danger {
+    @apply border-2 border-red-700 bg-white text-red-700 hover:bg-red-50;
+  }
+
+  .btn-icon {
+    @apply inline-grid size-11 place-items-center rounded-lg text-muted transition-colors hover:bg-sage-100;
   }
 }

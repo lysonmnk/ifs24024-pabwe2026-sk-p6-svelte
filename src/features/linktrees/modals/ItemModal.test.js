@@ -1,34 +1,75 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen, fireEvent, waitFor } from "@testing-library/svelte";
-import ItemModal from "./ItemModal.svelte";
-import { renderWithProviders, mockApi, okResponse, sampleTree } from "../../../test-utils.js";
+import { renderWithProviders, sampleTree } from "../../../test-utils.js";
 
-const routes = {
-  "POST /link-trees/t1/items": okResponse({}, "Ditambah"),
-  "PUT /link-trees/t1/items/i1": okResponse({}, "Diubah"),
-  "GET /link-trees/t1": okResponse({ link_tree: sampleTree }),
-};
+vi.mock("../../../helpers/toolsHelper.js", async (importOriginal) => ({
+  ...(await importOriginal()),
+  showWarningDialog: vi.fn(),
+}));
+vi.mock("../states/linkTreesStore.js", async (importOriginal) => ({
+  ...(await importOriginal()),
+  addItem: vi.fn(),
+  changeItem: vi.fn(),
+}));
+
+import { showWarningDialog } from "../../../helpers/toolsHelper.js";
+import { addItem, changeItem, isItemMutating } from "../states/linkTreesStore.js";
+import ItemModal from "./ItemModal.svelte";
+
+const submit = () => fireEvent.submit(screen.getByRole("button", { name: "Simpan" }).closest("form"));
+const item = sampleTree.items[0];
 
 describe("ItemModal", () => {
-  it("mode tambah", async () => {
-    const onClose = vi.fn();
-    const fetchMock = mockApi(routes);
-    renderWithProviders(ItemModal, { linkTreeId: "t1", item: null, onClose });
-    expect(screen.getByRole("dialog", { name: "Tambah Tautan" })).toBeInTheDocument();
-    await fireEvent.input(screen.getByLabelText("Judul tautan"), { target: { value: "Blog" } });
-    await fireEvent.input(screen.getByLabelText("URL"), { target: { value: "https://blog.dev" } });
-    await fireEvent.submit(screen.getByTestId("item-form"));
-    await waitFor(() => expect(onClose).toHaveBeenCalled());
-    expect(fetchMock.mock.calls[0][1].method).toBe("POST");
+  beforeEach(() => {
+    vi.clearAllMocks();
+    isItemMutating.set(false);
   });
 
-  it("mode ubah terisi data tautan", async () => {
-    const onClose = vi.fn();
-    const fetchMock = mockApi(routes);
-    renderWithProviders(ItemModal, { linkTreeId: "t1", item: sampleTree.items[0], onClose });
+  it("mode tambah menolak input kosong", async () => {
+    renderWithProviders(ItemModal, { props: { linkTreeId: 7, item: null, onclose: vi.fn() } });
+    expect(screen.getByRole("dialog", { name: "Tambah Tautan" })).toBeInTheDocument();
+    await submit();
+    await waitFor(() => expect(showWarningDialog).toHaveBeenCalledWith("Judul dan URL wajib diisi"));
+    expect(addItem).not.toHaveBeenCalled();
+  });
+
+  it("mode tambah berhasil", async () => {
+    addItem.mockResolvedValue(true);
+    const onclose = vi.fn();
+    renderWithProviders(ItemModal, { props: { linkTreeId: 7, item: null, onclose } });
+    await fireEvent.input(screen.getByLabelText("Judul Tautan"), { target: { value: " Docs " } });
+    await fireEvent.input(screen.getByLabelText("URL"), { target: { value: "https://a.b" } });
+    await submit();
+    await waitFor(() => expect(onclose).toHaveBeenCalled());
+    expect(addItem).toHaveBeenCalledWith(7, { title: "Docs", url: "https://a.b" });
+  });
+
+  it("mode tambah gagal tidak menutup", async () => {
+    addItem.mockResolvedValue(false);
+    const onclose = vi.fn();
+    renderWithProviders(ItemModal, { props: { linkTreeId: 7, item: null, onclose } });
+    await fireEvent.input(screen.getByLabelText("Judul Tautan"), { target: { value: "A" } });
+    await fireEvent.input(screen.getByLabelText("URL"), { target: { value: "https://a.b" } });
+    await submit();
+    await waitFor(() => expect(addItem).toHaveBeenCalled());
+    expect(onclose).not.toHaveBeenCalled();
+  });
+
+  it("mode ubah terisi data dan memanggil changeItem", async () => {
+    changeItem.mockResolvedValue(true);
+    const onclose = vi.fn();
+    renderWithProviders(ItemModal, { props: { linkTreeId: 7, item, onclose } });
     expect(screen.getByRole("dialog", { name: "Ubah Tautan" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Judul tautan")).toHaveValue("GitHub");
-    await fireEvent.submit(screen.getByTestId("item-form"));
-    await waitFor(() => expect(onClose).toHaveBeenCalled());
-    expect(fetchMock.mock.calls[0][1].method).toBe("PUT");
+    expect(screen.getByLabelText("Judul Tautan")).toHaveValue("Dasar Java");
+    expect(screen.getByLabelText("URL")).toHaveValue("https://youtu.be/abc");
+    await submit();
+    await waitFor(() => expect(onclose).toHaveBeenCalled());
+    expect(changeItem).toHaveBeenCalledWith(7, 11, { title: "Dasar Java", url: "https://youtu.be/abc" });
+  });
+
+  it("tombol nonaktif saat menyimpan", async () => {
+    renderWithProviders(ItemModal, { props: { linkTreeId: 7, item: null, onclose: vi.fn() } });
+    isItemMutating.set(true);
+    expect(await screen.findByRole("button", { name: "Menyimpan..." })).toBeDisabled();
   });
 });

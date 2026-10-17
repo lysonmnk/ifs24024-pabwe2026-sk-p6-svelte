@@ -1,20 +1,13 @@
 import "@testing-library/jest-dom/vitest";
 import { vi } from "vitest";
-import StubIcon from "./test-icon.svelte";
 
-// Ikon lucide-svelte diganti komponen stub agar render pengujian ringan.
-vi.mock("lucide-svelte", () => ({
-  Link: StubIcon,
-  LogOut: StubIcon,
-  Users: StubIcon,
-  User: StubIcon,
-  Plus: StubIcon,
-  Trash2: StubIcon,
-  Pencil: StubIcon,
-  Image: StubIcon,
-}));
-
-// Dialog SweetAlert2 dimock; secara bawaan pengguna menekan tombol konfirmasi.
-vi.mock("sweetalert2", () => ({
-  default: { fire: vi.fn().mockResolvedValue({ isConfirmed: true }) },
-}));
+// lucide-svelte dimock menjadi komponen kosong agar tes ringan dan stabil.
+vi.mock("lucide-svelte", () => {
+  const Icon = () => {};
+  const names = [
+    "Link2", "LogOut", "Layers", "Users", "User", "Plus", "Search",
+    "Trash2", "Pencil", "Image", "ExternalLink", "ArrowLeft", "X",
+    "Globe", "EyeOff", "Lock",
+  ];
+  return Object.fromEntries(names.map((name) => [name, Icon]));
+});

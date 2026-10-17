@@ -1,64 +1,41 @@
 import { render } from "@testing-library/svelte";
-import { vi } from "vitest";
 import { createRawSnippet } from "svelte";
-import { authToken, isAuthLogin, isAuthRegister } from "./features/auth/states/authStore.js";
-import { profile, users, resetUsers } from "./features/users/states/usersStore.js";
-import { resetLinkTrees } from "./features/linktrees/states/linkTreesStore.js";
+import { authProfile, isPreload } from "./features/auth/states/authStore.js";
 import { currentPath } from "./router.js";
 
-export function resetAllStores() {
-  localStorage.clear();
-  authToken.set(null);
-  isAuthLogin.set(false);
-  isAuthRegister.set(false);
-  resetUsers();
-  resetLinkTrees();
-  currentPath.set("/");
+export const sampleProfile = {
+  id: 1,
+  name: "Delcom Testing",
+  email: "testing@delcom.org",
+  photo: "http://localhost:8000/default/img/user.png",
+};
+
+export const sampleTree = {
+  id: 7,
+  user_id: 1,
+  title: "Kursus Ku",
+  type: "public",
+  description: "Kumpulan kursus",
+  cover: "http://localhost:8000/img/cover/7.png",
+  created_at: "2025-03-09T01:32:33.000000Z",
+  author: { name: "Delcom Testing", photo: "http://localhost:8000/default/img/user.png" },
+  total_links: 2,
+  items: [
+    { id: 11, link_tree_id: 7, title: "Dasar Java", url: "https://youtu.be/abc" },
+  ],
+};
+
+export function textSnippet(text) {
+  return createRawSnippet(() => ({ render: () => `<p>${text}</p>` }));
 }
 
-/** Render komponen Svelte setelah store direset dan diisi sesuai opsi. */
-export function renderWithProviders(Component, props = {}, { token = null, user = null } = {}) {
-  resetAllStores();
-  if (token) authToken.set(token);
-  if (user) profile.set(user);
+/** Render komponen beserta keadaan store (rute, profil, preload) yang dibutuhkan. */
+export function renderWithProviders(
+  Component,
+  { props = {}, path = "/", profile = sampleProfile, preload = false } = {}
+) {
+  currentPath.set(path);
+  authProfile.set(profile);
+  isPreload.set(preload);
   return render(Component, { props });
 }
-
-export const okResponse = (data = {}, message = "OK") => ({ status: "success", message, data });
-export const failResponse = (message = "Gagal") => ({ status: "fail", message });
-
-export function mockFetchOnce(body) {
-  const fn = vi.fn().mockResolvedValue({ json: () => Promise.resolve(body) });
-  globalThis.fetch = fn;
-  return fn;
-}
-
-export { users };
-
-/** Mock fetch berdasarkan kunci "METHOD /path". */
-export function mockApi(routes = {}) {
-  const fn = vi.fn(async (url, options = {}) => {
-    const path = String(url).replace(DELCOM_BASEURL, "");
-    const key = `${options.method || "GET"} ${path}`;
-    const handler = routes[key];
-    const body =
-      typeof handler === "function" ? handler(options) : (handler ?? failResponse(`Tidak di-mock: ${key}`));
-    return { json: async () => body };
-  });
-  globalThis.fetch = fn;
-  return fn;
-}
-
-export const snippet = (html = "<p>anak</p>") => createRawSnippet(() => ({ render: () => html }));
-
-export const sampleUser = { id: "u1", name: "Dian", email: "dian@example.com", photo: null };
-export const sampleTree = {
-  id: "t1",
-  user_id: "u1",
-  title: "Portofolio",
-  type: "public",
-  description: "Kumpulan karya",
-  cover: null,
-  created_at: "2026-01-01T00:00:00Z",
-  items: [{ id: "i1", title: "GitHub", url: "https://github.com/dian" }],
-};

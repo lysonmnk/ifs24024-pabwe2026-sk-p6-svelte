@@ -1,40 +1,47 @@
+import { describe, it, expect } from "vitest";
 import { get } from "svelte/store";
-import { currentPath, navigate, link, resolveRoute } from "./router.js";
+import { currentPath, navigate, resolveRoute } from "./router.js";
 
-describe("router", () => {
-  it("resolveRoute memetakan semua rute", () => {
-    expect(resolveRoute("/auth/login")).toEqual({ layout: "auth", page: "login", params: {} });
-    expect(resolveRoute("/auth/register").page).toBe("register");
-    expect(resolveRoute("/")).toEqual({ layout: "app", page: "home", params: {} });
-    expect(resolveRoute("/users").page).toBe("users");
-    expect(resolveRoute("/profile").page).toBe("profile");
-    expect(resolveRoute("/link-trees/abc")).toEqual({
-      layout: "app",
-      page: "detail",
-      params: { linkTreeId: "abc" },
-    });
-    expect(resolveRoute("/link-trees/abc/x").page).toBe("notfound");
-    expect(resolveRoute("/tidak-ada").page).toBe("notfound");
+describe("resolveRoute", () => {
+  it.each([
+    ["/auth/login", "login", "auth"],
+    ["/auth/register", "register", "auth"],
+    ["/", "home", "app"],
+    ["/users", "users", "app"],
+    ["/profile", "profile", "app"],
+  ])("%s", (path, name, layout) => {
+    expect(resolveRoute(path)).toEqual({ name, layout, params: {} });
   });
 
-  it("navigate memakai pushState atau replaceState", () => {
+  it("mengambil parameter detail", () => {
+    expect(resolveRoute("/link-trees/12")).toEqual({
+      name: "detail",
+      layout: "app",
+      params: { linkTreeId: "12" },
+    });
+  });
+
+  it("path tak dikenal menjadi notFound", () => {
+    expect(resolveRoute("/tidak-ada")).toEqual({ name: "notFound", layout: "plain", params: {} });
+  });
+});
+
+describe("navigate", () => {
+  it("pushState dan memperbarui currentPath", () => {
     navigate("/users");
     expect(window.location.pathname).toBe("/users");
     expect(get(currentPath)).toBe("/users");
-    navigate("/profile", { replace: true });
+  });
+
+  it("replaceState bila replace=true", () => {
+    navigate("/profile", true);
     expect(window.location.pathname).toBe("/profile");
-  });
-
-  it("link mencegah navigasi bawaan", () => {
-    const preventDefault = vi.fn();
-    link({ preventDefault, currentTarget: { getAttribute: () => "/users" } });
-    expect(preventDefault).toHaveBeenCalled();
-    expect(get(currentPath)).toBe("/users");
-  });
-
-  it("popstate memperbarui currentPath", () => {
-    window.history.pushState({}, "", "/profile");
-    window.dispatchEvent(new PopStateEvent("popstate"));
     expect(get(currentPath)).toBe("/profile");
+  });
+
+  it("mengikuti popstate", () => {
+    window.history.replaceState({}, "", "/auth/login");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    expect(get(currentPath)).toBe("/auth/login");
   });
 });

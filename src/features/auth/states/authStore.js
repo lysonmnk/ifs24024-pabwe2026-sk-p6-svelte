@@ -1,37 +1,70 @@
 import { writable } from "svelte/store";
-import * as api from "../api/authApi.js";
+import { postLogin, postRegister, postLogout } from "../api/authApi.js";
+import { getProfile } from "../../users/api/userApi.js";
 import {
   getAccessToken,
   putAccessToken,
   removeAccessToken,
-  isSuccess,
+  getErrorMessage,
 } from "../../../helpers/apiHelper.js";
-import { loadProfile, resetUsers } from "../../users/states/usersStore.js";
+import { showErrorDialog, showSuccessDialog } from "../../../helpers/toolsHelper.js";
 
-export const authToken = writable(getAccessToken());
+export const authProfile = writable(null);
+export const isPreload = writable(true);
 export const isAuthLogin = writable(false);
 export const isAuthRegister = writable(false);
+export const isAuthLogout = writable(false);
 
-export async function login(email, password) {
-  const res = await api.postLogin({ email, password });
-  if (isSuccess(res)) {
-    putAccessToken(res.data.token);
-    authToken.set(res.data.token);
-    isAuthLogin.set(true);
-    await loadProfile();
+/** Muat profil dari token tersimpan. Token tidak valid akan dibersihkan. */
+export async function loadProfile() {
+  if (!getAccessToken()) {
+    isPreload.set(false);
+    return;
   }
-  return res;
+
+  const res = await getProfile();
+  if (res.status === "success") {
+    authProfile.set(res.data.user);
+  } else {
+    removeAccessToken();
+    authProfile.set(null);
+  }
+  isPreload.set(false);
 }
 
-export async function register(name, email, password) {
-  const res = await api.postRegister({ name, email, password });
-  if (isSuccess(res)) isAuthRegister.set(true);
-  return res;
-}
-
-export function logout() {
-  removeAccessToken();
-  authToken.set(null);
+export async function login({ email, password }) {
+  isAuthLogin.set(true);
+  const res = await postLogin({ email, password });
   isAuthLogin.set(false);
-  resetUsers();
+
+  if (res.status !== "success") {
+    await showErrorDialog(getErrorMessage(res));
+    return false;
+  }
+
+  putAccessToken(res.data.token);
+  await loadProfile();
+  return true;
+}
+
+export async function register({ name, email, password }) {
+  isAuthRegister.set(true);
+  const res = await postRegister({ name, email, password });
+  isAuthRegister.set(false);
+
+  if (res.status !== "success") {
+    await showErrorDialog(getErrorMessage(res));
+    return false;
+  }
+
+  await showSuccessDialog(res.message);
+  return true;
+}
+
+export async function logout() {
+  isAuthLogout.set(true);
+  await postLogout();
+  removeAccessToken();
+  authProfile.set(null);
+  isAuthLogout.set(false);
 }

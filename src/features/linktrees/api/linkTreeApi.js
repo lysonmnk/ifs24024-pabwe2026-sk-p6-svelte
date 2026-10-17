@@ -1,22 +1,57 @@
-import { request } from "../../../helpers/apiHelper.js";
+import { apiRequest } from "../../../helpers/apiHelper.js";
 
-const base = "/link-trees";
+export function postLinkTree({ title, type, description }) {
+  return apiRequest("/link-trees", {
+    method: "POST",
+    body: { title, type, description },
+  });
+}
 
-export const postLinkTree = (data) => request(base, { method: "POST", body: data });
-export const postCover = (id, file) => {
-  const form = new FormData();
-  form.append("cover", file);
-  return request(`${base}/${id}/cover`, { method: "POST", form });
-};
-export const putLinkTree = (id, data) => request(`${base}/${id}`, { method: "PUT", body: data });
-export const getLinkTrees = () => request(base);
-export const getLinkTree = (id) => request(`${base}/${id}`);
-export const deleteLinkTree = (id) => request(`${base}/${id}`, { method: "DELETE" });
-export const deleteAllLinkTrees = () => request(base, { method: "DELETE" });
+export function postCover(id, file) {
+  const formData = new FormData();
+  formData.append("cover", file);
+  return apiRequest(`/link-trees/${id}/cover`, { method: "POST", formData });
+}
 
-export const postItem = (id, data) =>
-  request(`${base}/${id}/items`, { method: "POST", body: data });
-export const putItem = (id, itemId, data) =>
-  request(`${base}/${id}/items/${itemId}`, { method: "PUT", body: data });
-export const deleteItem = (id, itemId) =>
-  request(`${base}/${id}/items/${itemId}`, { method: "DELETE" });
+export function putLinkTree(id, { title, type, description }) {
+  return apiRequest(`/link-trees/${id}`, {
+    method: "PUT",
+    body: { title, type, description },
+  });
+}
+
+export function getLinkTrees(isMe) {
+  return apiRequest(isMe ? "/link-trees?is_me=1" : "/link-trees");
+}
+
+export function getLinkTree(id) {
+  return apiRequest(`/link-trees/${id}`);
+}
+
+export function deleteLinkTree(id) {
+  return apiRequest(`/link-trees/${id}`, { method: "DELETE" });
+}
+
+export function deleteAllLinkTrees() {
+  return apiRequest("/link-trees", { method: "DELETE" });
+}
+
+export function postItem(linkTreeId, { title, url }) {
+  return apiRequest(`/link-trees/${linkTreeId}/items`, {
+    method: "POST",
+    body: { title, url },
+  });
+}
+
+export function putItem(linkTreeId, itemId, { title, url }) {
+  return apiRequest(`/link-trees/${linkTreeId}/items/${itemId}`, {
+    method: "PUT",
+    body: { title, url },
+  });
+}
+
+export function deleteItem(linkTreeId, itemId) {
+  return apiRequest(`/link-trees/${linkTreeId}/items/${itemId}`, {
+    method: "DELETE",
+  });
+}
