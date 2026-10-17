@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "ifs24010-pabwe2026-sk-p6-svelte",
+      "name": "ifs24024-pabwe2026-sk-p6-svelte",
       "dependencies": {
         "@toast-ui/editor": "^3.2.2",
         "clsx": "^2.1.1",

@@ -1,6 +1,6 @@
 # Delcom Link Tree (Svelte 5 + Vite, JavaScript)
 
-Studi Kasus 1 — Praktikum 6 PABWE 2026 · NIM **ifs24010**
+Studi Kasus 1 — Praktikum 6 PABWE 2026 · NIM **ifs24024**
 
 ## Prasyarat
 - [Bun](https://bun.sh) (package manager proyek ini; ada `bun.lock`) atau Node.js 20+.
