@@ -209,7 +209,7 @@ pipeline {
                         -x ".env" \
                         -x ".env.*" \
                         -x "coverage/*" \
-                        -x ".next/*" \
+                        -x "dist/*" \
                         -x "out/*" \
                         -x ".trivy-cache/*" \
                         -x "latest-app.zip" \
